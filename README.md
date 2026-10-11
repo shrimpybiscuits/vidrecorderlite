@@ -11,6 +11,12 @@ A simple camera recorder with numbered takes and a built-in teleprompter. It run
 - **Delete**: removes the selected take. It asks you first, and warns you if the take hasn't been saved.
 - **Teleprompter** tab: your script scrolls over the live camera. With "Scroll starts with record" on (in Settings), pressing Record starts both the recording and the scroll. Speed, size, mirror, color and font controls all carry over from the original teleprompter.
 
+- **Backgrounds & filters** (the wand button ✨): blur your background, swap it for a built-in backdrop or your own image, and add a filter (Warm, Cool, Vivid, Soft, Vintage, B&W, Noir) or adjust brightness. Whatever you see is what gets recorded. The background feature uses a small AI model that runs on your computer, so no video is uploaded. It downloads once the first time you use it.
+- **Slides** tab: your slides fill the frame, with your camera in a round bubble.
+  - **Load PDF (recommended):** in Google Slides, choose **File → Download → PDF Document**, then click **Load PDF**. Move through the slides with → / ← / Space or a presentation clicker.
+  - **Share tab:** shares your Google Slides tab live, which keeps animations and embedded videos and records their sound. Start the slideshow in that tab, then come back to the app to stop recording.
+  - **Camera on/off** at any time, even mid-take: **Slides + camera**, **Slides only**, or **Camera only**, or press **C**. Pick the bubble's corner and size (S / M / L).
+
 Takes live in memory until you save them. If you try to close the app with unsaved takes, it warns you first.
 
 ## Put it on your desktop as an icon

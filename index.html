@@ -84,12 +84,13 @@
     position: relative; flex: 1; min-height: 0; overflow: hidden;
     background: radial-gradient(ellipse at 50% 35%, #111114 0%, #050506 100%);
   }
-  #video, #playback {
+  #video, #out, #playback {
     position: absolute; inset: 0; width: 100%; height: 100%;
     object-fit: contain; transform: scaleX(-1);
   }
-  #video { z-index: 0; opacity: 0; transition: opacity .3s; }
-  #video.on { opacity: 1; }
+  /* the camera feed is drawn (with background + filter) onto #out, which sits on top of #video */
+  #video, #out { z-index: 0; opacity: 0; transition: opacity .3s; }
+  #video.on, #out.on { opacity: 1; }
   #playback { z-index: 10; background: #000; display: none; cursor: pointer; }
   #stage.reviewing #playback { display: block; }
   #stage.reviewing .prompter { display: none !important; }
@@ -214,6 +215,29 @@
   .fontbtn.sel { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
   .toggle { height: 32px; padding: 0 16px; min-width: 56px; }
 
+  /* ---- effects drawer ---- */
+  #effects {
+    background: var(--panel); border-top: 1px solid var(--stroke); flex-shrink: 0;
+    padding: 14px 18px; display: none; flex-direction: column; gap: 12px;
+  }
+  #effects.open { display: flex; }
+  #effects.locked .fxrow { opacity: .4; pointer-events: none; }
+  .fxrow { display: flex; align-items: center; gap: 12px; }
+  .fxrow .name { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #7c7c86; white-space: nowrap; width: 92px; flex-shrink: 0; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px; scrollbar-width: thin; }
+  .chip {
+    flex-shrink: 0; width: 76px; height: 48px; border-radius: 8px; border: 2px solid var(--stroke);
+    background: #1d1d22 center/cover no-repeat; color: #fff; cursor: pointer; position: relative;
+    font-family: inherit; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px;
+    text-shadow: 0 1px 3px rgba(0,0,0,.9);
+  }
+  .chip.plain { align-items: center; padding: 0; color: #cfcfd6; text-shadow: none; }
+  .chip.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .chip.add { border-style: dashed; color: #9a9aa4; align-items: center; padding: 0; text-shadow: none; }
+  .fxnote { font-size: 13px; color: #7c7c86; letter-spacing: 0.03em; }
+  #fxBright { max-width: 260px; }
+
   /* ---- range inputs ---- */
   input[type=range] {
     -webkit-appearance: none; appearance: none; height: 4px; border-radius: 99px;
@@ -278,6 +302,7 @@
     </div>
     <div class="group">
       <button class="btn icon" id="camBtn" title="Camera on / off"></button>
+      <button class="btn icon" id="fxBtn" title="Backgrounds &amp; filters"></button>
       <button class="btn icon" id="setBtn" title="Settings"></button>
       <button class="btn icon" id="fsBtn" title="Fullscreen (F)"></button>
     </div>
@@ -285,6 +310,7 @@
 
   <div id="stage">
     <video id="video" autoplay playsinline muted></video>
+    <canvas id="out"></canvas>
     <div id="noCam"><span class="lbl">Camera is off</span><button class="btn" id="noCamBtn">Turn camera on</button></div>
     <div id="vscrim"></div>
 
@@ -334,6 +360,15 @@
       <div class="group" id="colorGroup"></div></div>
     <div class="ctrl tele-only" style="min-width:auto"><span class="name">Font</span>
       <div class="group" id="fontGroup"></div></div>
+  </div>
+
+  <div id="effects">
+    <div class="fxrow"><span class="name">Background</span><div class="chips" id="bgChips"></div></div>
+    <div class="fxrow"><span class="name">Filter</span><div class="chips" id="filterChips"></div></div>
+    <label class="fxrow"><span class="name">Brightness</span>
+      <input type="range" id="fxBright" min="60" max="140"><span class="readout" id="fxBrightV"></span></label>
+    <div class="fxnote" id="fxNote">Backgrounds and filters are recorded into your takes.</div>
+    <input type="file" id="bgFile" accept="image/*" hidden>
   </div>
 
   <div id="prompterBar">
@@ -395,6 +430,7 @@
     rec:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="7"/></svg>',
     stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
     save:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>',
+    fx:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8l1.4 1.4M17.8 6.2l1.4-1.4M12.2 6.2l-1.4-1.4M15 9l-12 12"/></svg>',
     trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>'
   };
   function iconLabel(icon, text) { return icon + '<span class="txt">' + text + '</span>'; }
@@ -410,7 +446,7 @@
   // --- persisted state ---
   var DEFAULTS = { text:SAMPLE, speed:45, fontSize:52, lineHeight:1.5, widthPct:82,
     mirrorH:false, mirrorV:false, colorKey:"amber", fontKey:"sans", useCountdown:true, scrim:0.4,
-    project:"", mode:"rec", scrollWithRec:true };
+    project:"", mode:"rec", scrollWithRec:true, bg:"none", filter:"none", brightness:100 };
   var S = load();
 
   function load() {
@@ -432,11 +468,12 @@
   var stream = null, cameraOn = false;
   var recording = false, recorder = null, chunks = [], recStart = 0, recInterval = null, pendingName = null;
   var takes = [], selectedId = null, nextId = 1;
+  var recCanvasTrack = null;
 
   // --- elements ---
   var $ = function (id) { return document.getElementById(id); };
   var stage = $("stage"), content = $("content"), scriptEl = $("script");
-  var video = $("video"), vscrim = $("vscrim"), playback = $("playback");
+  var video = $("video"), out = $("out"), vscrim = $("vscrim"), playback = $("playback");
 
   // --- helpers ---
   function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
@@ -563,8 +600,9 @@
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return Promise.reject(new Error("noapi"));
     // prefer video + audio (so takes have sound); fall back to video only
     return getCamera(true).catch(function () { return getCamera(false); }).then(function (s) {
-      stream = s; video.srcObject = s; video.classList.add("on");
-      cameraOn = true; updateCamUI();
+      stream = s; video.srcObject = s; video.classList.add("on"); out.classList.add("on");
+      video.play().catch(function () {});
+      cameraOn = true; updateCamUI(); startRender();
       if (!s.getAudioTracks().length) toast("No microphone found — recording video without sound.", true);
       return s;
     });
@@ -583,7 +621,8 @@
   function stopCamera() {
     if (recording) stopRecording();
     if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
-    video.srcObject = null; video.classList.remove("on");
+    video.srcObject = null; video.classList.remove("on"); out.classList.remove("on");
+    stopRender();
     cameraOn = false; updateCamUI();
   }
   function updateCamUI() {
@@ -591,6 +630,237 @@
     b.innerHTML = cameraOn ? I.cam : I.camOff;
     b.classList.toggle("active", cameraOn);
     stage.classList.toggle("camon", cameraOn);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Effects: virtual backgrounds + filters
+  // The camera is drawn onto the #out canvas every frame. For backgrounds, a
+  // small on-device AI model (MediaPipe selfie segmentation) finds the person;
+  // nothing leaves the computer. The model loads from the web the first time.
+  // ---------------------------------------------------------------------------
+  var MP_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+  var MP_MODEL = "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite";
+
+  var FILTERS = {
+    none:    { label: "None",    css: "" },
+    warm:    { label: "Warm",    css: "sepia(0.22) saturate(1.25) brightness(1.03)" },
+    cool:    { label: "Cool",    css: "sepia(0.25) hue-rotate(170deg) saturate(1.15)" },
+    vivid:   { label: "Vivid",   css: "saturate(1.5) contrast(1.08)" },
+    soft:    { label: "Soft",    css: "contrast(0.9) brightness(1.07) saturate(1.05)" },
+    vintage: { label: "Vintage", css: "sepia(0.55) contrast(0.9) brightness(1.05) saturate(0.85)" },
+    bw:      { label: "B&W",     css: "grayscale(1) contrast(1.1)" },
+    noir:    { label: "Noir",    css: "grayscale(1) contrast(1.45) brightness(0.9)" }
+  };
+  // preset backgrounds are painted in code, so there are no image files to download
+  var BG_PRESETS = {
+    studio: { label: "Studio", paint: function (c, w, h) {
+      var g = c.createRadialGradient(w / 2, h * 0.4, 0, w / 2, h * 0.4, w * 0.75);
+      g.addColorStop(0, "#6b7078"); g.addColorStop(1, "#1a1c20"); c.fillStyle = g; c.fillRect(0, 0, w, h); } },
+    sunset: { label: "Sunset", paint: function (c, w, h) {
+      var g = c.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, "#2b1055"); g.addColorStop(0.55, "#d6476b"); g.addColorStop(1, "#ffb37b"); c.fillStyle = g; c.fillRect(0, 0, w, h); } },
+    ocean: { label: "Ocean", paint: function (c, w, h) {
+      var g = c.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, "#1cb5e0"); g.addColorStop(1, "#000851"); c.fillStyle = g; c.fillRect(0, 0, w, h); } },
+    forest: { label: "Forest", paint: function (c, w, h) {
+      var g = c.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, "#134e5e"); g.addColorStop(1, "#71b280"); c.fillStyle = g; c.fillRect(0, 0, w, h); } },
+    bokeh: { label: "Bokeh", paint: function (c, w, h) {
+      var g = c.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, "#1b1530"); g.addColorStop(1, "#3a2216"); c.fillStyle = g; c.fillRect(0, 0, w, h);
+      var cols = ["255,190,90", "255,140,60", "120,170,255", "255,230,170"], seed = 7;
+      function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+      for (var i = 0; i < 46; i++) {
+        var x = rnd() * w, y = rnd() * h, r = (0.02 + rnd() * 0.06) * w, col = cols[i % cols.length];
+        var rg = c.createRadialGradient(x, y, 0, x, y, r);
+        rg.addColorStop(0, "rgba(" + col + ",0.55)"); rg.addColorStop(0.7, "rgba(" + col + ",0.25)"); rg.addColorStop(1, "rgba(" + col + ",0)");
+        c.fillStyle = rg; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+      } } }
+  };
+  var bgCanvases = {};      // key -> canvas (presets + "custom")
+  var segmenter = null, segLoading = null, segFailed = false;
+  var octx = out.getContext("2d");
+  var personCv = document.createElement("canvas"), pctx = personCv.getContext("2d");
+  var maskCv = document.createElement("canvas"), mctx = maskCv.getContext("2d");
+  var maskImg = null, maskPrev = null, lastSegTs = 0, lastVideoTime = -1, renderId = null;
+
+  function filterCss() {
+    var f = (FILTERS[S.filter] || FILTERS.none).css;
+    if (S.brightness !== 100) f += " brightness(" + (S.brightness / 100) + ")";
+    return f.trim() || "none";
+  }
+  function bgNeedsPerson() { return S.bg !== "none"; }
+  function effectsActive() { return bgNeedsPerson() || filterCss() !== "none"; }
+
+  function bgCanvas(key) {
+    if (bgCanvases[key]) return bgCanvases[key];
+    var p = BG_PRESETS[key]; if (!p) return null;
+    var c = document.createElement("canvas"); c.width = 1920; c.height = 1080;
+    p.paint(c.getContext("2d"), c.width, c.height);
+    return (bgCanvases[key] = c);
+  }
+  function drawCover(ctx, src, w, h) {
+    var sw = src.width, sh = src.height, k = Math.max(w / sw, h / sh);
+    var dw = sw * k, dh = sh * k;
+    ctx.drawImage(src, (w - dw) / 2, (h - dh) / 2, dw, dh);
+  }
+
+  function loadSegmenter() {
+    if (segmenter) return Promise.resolve(segmenter);
+    if (segLoading) return segLoading;
+    toast("Loading background effects…");
+    segLoading = import(MP_BASE + "/vision_bundle.mjs").then(function (vision) {
+      return vision.FilesetResolver.forVisionTasks(MP_BASE + "/wasm").then(function (files) {
+        function make(delegate) {
+          return vision.ImageSegmenter.createFromOptions(files, {
+            baseOptions: { modelAssetPath: MP_MODEL, delegate: delegate },
+            runningMode: "VIDEO", outputConfidenceMasks: true, outputCategoryMask: false
+          });
+        }
+        return make("GPU").catch(function () { return make("CPU"); });
+      });
+    }).then(function (s) {
+      segmenter = s; segFailed = false;
+      if ($("toastMsg").textContent.indexOf("Loading background") === 0) $("toast").className = "";
+      return s;
+    }).catch(function (err) {
+      segLoading = null; segFailed = true;
+      toast("Couldn't load background effects. They need an internet connection the first time.", true);
+      S.bg = "none"; save(); buildBgChips();
+      throw err;
+    });
+    return segLoading;
+  }
+
+  // Run the model on the newest camera frame and turn its output into a soft alpha mask.
+  function updateMask() {
+    if (video.currentTime === lastVideoTime) return;
+    lastVideoTime = video.currentTime;
+    var ts = performance.now(); if (ts <= lastSegTs) ts = lastSegTs + 1; lastSegTs = ts;
+    try {
+      segmenter.segmentForVideo(video, ts, function (res) {
+        var m = res.confidenceMasks && res.confidenceMasks[0]; if (!m) return;
+        var mw = m.width, mh = m.height, a = m.getAsFloat32Array(), n = mw * mh;
+        if (!maskImg || maskCv.width !== mw || maskCv.height !== mh) {
+          maskCv.width = mw; maskCv.height = mh;
+          maskImg = mctx.createImageData(mw, mh); maskPrev = new Float32Array(n);
+        }
+        var d = maskImg.data;
+        for (var i = 0; i < n; i++) {
+          var v = (a[i] - 0.45) / 0.3;              // only keep pixels the model is fairly sure about
+          v = v < 0 ? 0 : v > 1 ? 1 : v;
+          v = maskPrev[i] = maskPrev[i] * 0.35 + v * 0.65;   // smooth flicker between frames
+          d[i * 4 + 3] = v * 255;
+        }
+        mctx.putImageData(maskImg, 0, 0);
+      });
+    } catch (e) { /* skip a bad frame */ }
+  }
+
+  function drawFrame() {
+    var w = video.videoWidth, h = video.videoHeight;
+    if (!w || !h || video.readyState < 2) return;
+    if (out.width !== w || out.height !== h) { out.width = w; out.height = h; personCv.width = w; personCv.height = h; }
+    var f = filterCss();
+    if (bgNeedsPerson() && segmenter) updateMask();
+    var useBg = bgNeedsPerson() && segmenter && maskImg !== null;
+    if (!useBg) {
+      octx.filter = f; octx.drawImage(video, 0, 0, w, h); octx.filter = "none";
+      return;
+    }
+    // background
+    if (S.bg === "blur" || S.bg === "blur2") {
+      var r = Math.round((S.bg === "blur" ? 10 : 24) * w / 1280), m = r * 2;
+      octx.filter = (f === "none" ? "" : f + " ") + "blur(" + r + "px)";
+      octx.drawImage(video, -m, -m, w + m * 2, h + m * 2);   // oversize so the edges don't fade
+    } else {
+      var src = bgCanvas(S.bg);
+      octx.filter = f;
+      if (src) drawCover(octx, src, w, h); else { octx.fillStyle = "#000"; octx.fillRect(0, 0, w, h); }
+    }
+    // person on top
+    pctx.globalCompositeOperation = "copy";
+    pctx.drawImage(video, 0, 0, w, h);
+    pctx.globalCompositeOperation = "destination-in";
+    pctx.imageSmoothingEnabled = true;
+    pctx.drawImage(maskCv, 0, 0, w, h);
+    pctx.globalCompositeOperation = "source-over";
+    octx.filter = f;
+    octx.drawImage(personCv, 0, 0);
+    octx.filter = "none";
+  }
+  function renderLoop() { drawFrame(); renderId = requestAnimationFrame(renderLoop); }
+  function startRender() { if (!renderId) renderId = requestAnimationFrame(renderLoop); }
+  function stopRender() { cancelAnimationFrame(renderId); renderId = null; }
+
+  function setBg(key) {
+    if (recording) return;
+    if (key === "custom" && !bgCanvases.custom) { $("bgFile").click(); return; }
+    S.bg = key; save(); buildBgChips(); updateTransport();
+    if (key !== "none") loadSegmenter().catch(function () {});
+  }
+  function setFilter(key) { if (recording) return; S.filter = key; save(); buildFilterChips(); }
+
+  function chip(label, sel, onclick, bgUrl, cls) {
+    var b = document.createElement("button");
+    b.className = "chip" + (cls ? " " + cls : "") + (sel ? " sel" : "");
+    b.textContent = label;
+    if (bgUrl) b.style.backgroundImage = "url(" + bgUrl + ")";
+    b.onclick = onclick;
+    return b;
+  }
+  function thumb(c) {
+    var t = document.createElement("canvas"); t.width = 152; t.height = 96;
+    drawCover(t.getContext("2d"), c, t.width, t.height);
+    return t.toDataURL("image/jpeg", 0.8);
+  }
+  var thumbs = {};
+  function buildBgChips() {
+    var g = $("bgChips"); g.innerHTML = "";
+    g.appendChild(chip("Off", S.bg === "none", function () { setBg("none"); }, null, "plain"));
+    g.appendChild(chip("Blur", S.bg === "blur", function () { setBg("blur"); }, null, "plain"));
+    g.appendChild(chip("Blur+", S.bg === "blur2", function () { setBg("blur2"); }, null, "plain"));
+    Object.keys(BG_PRESETS).forEach(function (k) {
+      thumbs[k] = thumbs[k] || thumb(bgCanvas(k));
+      g.appendChild(chip(BG_PRESETS[k].label, S.bg === k, function () { setBg(k); }, thumbs[k]));
+    });
+    if (bgCanvases.custom) {
+      g.appendChild(chip("Yours", S.bg === "custom", function () { setBg("custom"); }, thumbs.custom));
+      g.appendChild(chip("Change", false, function () { $("bgFile").click(); }, null, "add"));
+    } else {
+      g.appendChild(chip("+ Image", false, function () { $("bgFile").click(); }, null, "add"));
+    }
+  }
+  function buildFilterChips() {
+    var g = $("filterChips"); g.innerHTML = "";
+    Object.keys(FILTERS).forEach(function (k) {
+      g.appendChild(chip(FILTERS[k].label, S.filter === k, function () { setFilter(k); }, null, "plain"));
+    });
+  }
+
+  // Your own background image: shrunk to 1920px wide and remembered for next time.
+  function useCustomImage(img, remember) {
+    var k = Math.min(1, 1920 / Math.max(img.width, img.height));
+    var c = document.createElement("canvas");
+    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    bgCanvases.custom = c; thumbs.custom = thumb(c);
+    if (remember) { try { localStorage.setItem("vrl-bgimg", c.toDataURL("image/jpeg", 0.85)); } catch (e) { toast("Image is too large to remember for next time, but it's in use now."); } }
+  }
+  function loadCustomFile(file) {
+    if (!file) return;
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () { URL.revokeObjectURL(url); useCustomImage(img, true); setBg("custom"); };
+    img.onerror = function () { URL.revokeObjectURL(url); toast("That file isn't an image this browser can open.", true); };
+    img.src = url;
+  }
+  function restoreCustomImage() {
+    var data = null;
+    try { data = localStorage.getItem("vrl-bgimg"); } catch (e) {}
+    if (!data) { if (S.bg === "custom") S.bg = "none"; return; }
+    var img = new Image();
+    img.onload = function () { useCustomImage(img, false); buildBgChips(); };
+    img.src = data;
   }
 
   // ---------------------------------------------------------------------------
@@ -620,13 +890,23 @@
     if (!stream) return;
     chunks = [];
     var mime = pickMime();
-    try { recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream); }
+    var src = stream;
+    if (effectsActive() && out.captureStream) {
+      // record exactly what's on screen: the canvas (background + filter) plus the mic
+      src = out.captureStream(30);
+      recCanvasTrack = src.getVideoTracks()[0];
+      stream.getAudioTracks().forEach(function (t) { src.addTrack(t); });
+    }
+    try { recorder = mime ? new MediaRecorder(src, { mimeType: mime }) : new MediaRecorder(src); }
     catch (e) { toast("Couldn't start the recorder (" + (e && e.name ? e.name : "error") + ").", true); return; }
     var project = projectName();
     pendingName = { project: project, num: claimTakeNum(project), day: todayKey() };
     recorder.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
     var info = pendingName;
-    recorder.onstop = function () { finalizeRecording(info); };
+    recorder.onstop = function () {
+      if (recCanvasTrack) { recCanvasTrack.stop(); recCanvasTrack = null; }
+      finalizeRecording(info);
+    };
     recorder.start(1000);
     recording = true; recStart = Date.now();
     $("recLabel").textContent = "· " + project + " – Take " + pendingName.num;
@@ -770,6 +1050,8 @@
     $("recDot").className = "dot" + (recording ? " live" : "");
     $("recBadge").classList.toggle("on", recording);
     $("projectName").disabled = recording;
+    $("effects").classList.toggle("locked", recording);
+    $("fxNote").textContent = recording ? "Effects are locked while recording." : "Backgrounds and filters are recorded into your takes.";
 
     var playing = reviewing && !playback.paused && !playback.ended;
     $("playBtn").innerHTML = iconLabel(playing ? I.pause : I.play, playing ? "Pause" : "Play");
@@ -900,6 +1182,14 @@
     $("camBtn").onclick = function () { if (cameraOn) stopCamera(); else startCamera(); };
     $("noCamBtn").onclick = startCamera;
     $("toastClose").onclick = function () { $("toast").className = ""; };
+    $("fxBtn").innerHTML = I.fx;
+    $("fxBtn").onclick = function () { $("effects").classList.toggle("open"); $("fxBtn").classList.toggle("active"); };
+    $("bgFile").onchange = function () { loadCustomFile(this.files[0]); this.value = ""; };
+    var fb = $("fxBright");
+    fb.value = S.brightness; $("fxBrightV").textContent = S.brightness + "%";
+    fb.oninput = function () { S.brightness = +fb.value; $("fxBrightV").textContent = S.brightness + "%"; save(); };
+    restoreCustomImage(); buildBgChips(); buildFilterChips();
+    if (S.bg !== "none") loadSegmenter().catch(function () {});
 
     // transport
     $("recBtn").onclick = requestRecord;

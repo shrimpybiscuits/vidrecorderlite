@@ -78,12 +78,25 @@
   }
   #recBtn svg { width: 22px; height: 22px; }
   #recBtn.active { background: var(--red); color: #fff; box-shadow: 0 0 24px rgba(255,59,59,.45); }
+  #recBtn.photo { border-color: var(--accent); color: var(--accent); }
 
-  /* ---- stage ---- */
+  /* ---- stage (+ optional presenter-notes pane beside it) ---- */
+  #main { display: flex; flex: 1; min-height: 0; }
   #stage {
-    position: relative; flex: 1; min-height: 0; overflow: hidden;
+    position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden;
     background: radial-gradient(ellipse at 50% 35%, #111114 0%, #050506 100%);
   }
+  #notesPane {
+    display: none; width: 34%; max-width: 520px; min-width: 260px; flex-direction: column; gap: 10px;
+    padding: 14px 16px; background: #0f0f12; border-left: 1px solid var(--stroke); overflow: hidden;
+  }
+  #main.side #notesPane { display: flex; }
+  .np-head { display: flex; justify-content: space-between; align-items: center; }
+  #npCur { flex: 1; min-height: 0; overflow-y: auto; white-space: pre-wrap; color: var(--accent); line-height: 1.45; scrollbar-width: thin; }
+  .np-next { flex-shrink: 0; display: flex; gap: 10px; align-items: flex-start; border-top: 1px solid var(--stroke); padding-top: 10px; }
+  #npThumb { width: 120px; height: 68px; background: #000; border: 1px solid var(--stroke); border-radius: 4px; flex-shrink: 0; }
+  #npNextText { flex: 1; min-width: 0; font-family: "Archivo", sans-serif; font-size: 14px; color: #9a9aa4; white-space: pre-wrap; overflow: hidden; max-height: 110px; line-height: 1.4; }
+  @media (max-width: 700px) { #main.side #notesPane { display: none; } }
   #video, #screenVid, #out, #playback {
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
   }
@@ -96,6 +109,25 @@
   #video.on, #out.on { opacity: 1; }
   #playback { z-index: 10; background: #000; display: none; cursor: pointer; }
   #stage.reviewing #playback { display: block; }
+  #stage.reviewing.photoview #playback { display: none; }
+
+  /* photo take review: one big picture plus a strip of the rest */
+  #photoReview { position: absolute; inset: 0; z-index: 10; background: #000; display: none; flex-direction: column; }
+  #stage.reviewing.photoview #photoReview { display: flex; }
+  #photoBig { flex: 1; min-height: 0; width: 100%; object-fit: contain; }
+  #photoStrip { display: flex; gap: 8px; padding: 8px 12px; overflow-x: auto; flex-shrink: 0; background: rgba(0,0,0,.75); scrollbar-width: thin; }
+  .pthumb { position: relative; flex-shrink: 0; height: 72px; border-radius: 6px; border: 2px solid var(--stroke); overflow: hidden; cursor: pointer; }
+  .pthumb img { height: 100%; display: block; }
+  .pthumb.sel { border-color: var(--accent); }
+  .pthumb .num { position: absolute; left: 5px; bottom: 3px; font-family: "JetBrains Mono", monospace; font-size: 11px; color: #fff; text-shadow: 0 1px 3px #000; }
+  .pthumb .x {
+    position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; border: none;
+    background: rgba(0,0,0,.65); color: #fff; font-size: 11px; cursor: pointer; display: none;
+  }
+  .pthumb:hover .x { display: block; }
+  .pthumb .x:hover { background: var(--red); }
+  #flash { position: absolute; inset: 0; z-index: 14; background: #fff; opacity: 0; pointer-events: none; }
+  #flash.on { animation: flash .4s ease-out; }
   #stage.reviewing .prompter { display: none !important; }
   #vscrim { position: absolute; inset: 0; z-index: 1; pointer-events: none; display: none; }
   #stage.tele.camon #vscrim { display: block; }
@@ -119,8 +151,17 @@
   #slidesEmpty .group { flex-wrap: wrap; justify-content: center; }
 
   .prompter { display: none; }
-  #stage.tele .prompter { display: block; }
-  #stage.tele #readline.prompter { display: flex; }
+  #stage.tele .prompter, #stage.notes .prompter { display: block; }
+  #stage.tele #readline.prompter, #stage.notes #readline.prompter { display: flex; }
+  #stage.notes #scanlines { display: none; }
+  #stage.notes #vscrim { display: block; }
+  #stage.notes .sec { opacity: .38; transition: opacity .25s; }
+  #stage.notes .sec.cur { opacity: 1; }
+  .seclbl {
+    font-family: "Barlow Condensed", sans-serif; font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: #9a9aa4; text-shadow: none; white-space: normal; border-top: 1px solid #33333c; padding-top: 10px; margin: 30px 0 8px;
+  }
+  .sec:first-child .seclbl { border-top: none; padding-top: 0; margin-top: 0; }
   #scanlines {
     position: absolute; inset: 0; pointer-events: none; z-index: 2; opacity: 0.5;
     background: repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 2px, transparent 4px);
@@ -241,6 +282,7 @@
   #effects {
     background: var(--panel); border-top: 1px solid var(--stroke); flex-shrink: 0;
     padding: 14px 18px; display: none; flex-direction: column; gap: 12px;
+    max-height: 46vh; overflow-y: auto; scrollbar-width: thin;
   }
   #effects.open { display: flex; }
   #effects.locked .fxrow { opacity: .4; pointer-events: none; }
@@ -257,8 +299,9 @@
   .chip.plain { align-items: center; padding: 0; color: #cfcfd6; text-shadow: none; }
   .chip.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .chip.add { border-style: dashed; color: #9a9aa4; align-items: center; padding: 0; text-shadow: none; }
+  .chip.color { align-items: center; padding: 0; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.85); }
   .fxnote { font-size: 13px; color: #7c7c86; letter-spacing: 0.03em; }
-  #fxBright { max-width: 260px; }
+  #fxBright, #fxSmooth, #fxMakeup { max-width: 260px; }
 
   /* ---- range inputs ---- */
   input[type=range] {
@@ -305,6 +348,7 @@
 
   @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.82)} }
   @keyframes pop { 0%{opacity:0;transform:scale(.4)} 30%{opacity:1;transform:scale(1.08)} 100%{opacity:0;transform:scale(.85)} }
+  @keyframes flash { 0%{opacity:.9} 100%{opacity:0} }
 </style>
 </head>
 <body>
@@ -322,6 +366,7 @@
       <button class="tab" id="tabRec" role="tab">Recorder</button>
       <button class="tab" id="tabTele" role="tab">Teleprompter</button>
       <button class="tab" id="tabSlides" role="tab">Slides</button>
+      <button class="tab" id="tabPhoto" role="tab">Photo</button>
     </div>
     <div class="group">
       <button class="btn icon" id="camBtn" title="Camera on / off"></button>
@@ -331,6 +376,7 @@
     </div>
   </header>
 
+  <div id="main">
   <div id="stage">
     <video id="video" autoplay playsinline muted></video>
     <video id="screenVid" autoplay playsinline muted></video>
@@ -357,8 +403,13 @@
     </div>
 
     <video id="playback" playsinline></video>
+    <div id="photoReview">
+      <img id="photoBig" alt="">
+      <div id="photoStrip"></div>
+    </div>
+    <div id="flash"></div>
     <div id="recBadge"><span class="rd"></span><span id="recTime">00:00</span><span id="recLabel"></span></div>
-    <div id="reviewBadge">▶ PLAYBACK · <span id="reviewLabel"></span></div>
+    <div id="reviewBadge"><span id="reviewKind">▶ PLAYBACK</span> · <span id="reviewLabel"></span></div>
     <button class="btn" id="liveBtn" title="Back to the live camera">Back to live</button>
 
     <div id="countdown"><span id="countNum"></span></div>
@@ -368,13 +419,23 @@
       <div class="top">
         <h2>SCRIPT</h2>
         <div class="group">
+          <button class="btn" id="pptxBtn" title="Google Slides: File → Download → Microsoft PowerPoint (.pptx), then pick that file here">Import .pptx notes</button>
           <button class="btn" id="clearBtn">Clear</button>
           <button class="btn primary" id="doneBtn">Done</button>
         </div>
       </div>
-      <textarea id="scriptInput" placeholder="Paste or type your script here…"></textarea>
-      <p class="tip">Teleprompter tip · Space = scroll play/pause · ↑↓ = speed · +/− = size · F = fullscreen · M = mirror</p>
+      <textarea id="scriptInput" placeholder="Paste or type your script here…
+
+For slides: put --- on a line by itself to start the next slide's notes."></textarea>
+      <p class="tip">Space = scroll play/pause · ↑↓ = speed (or scroll, in Manual) · ←→ = next/previous section · +/− = size · F = fullscreen · M = mirror · a line with --- starts the next slide's notes</p>
+      <input type="file" id="pptxFile" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden>
     </div>
+  </div>
+  <aside id="notesPane">
+    <div class="np-head"><span class="lbl">Presenter notes</span><span class="readout" id="npNum"></span></div>
+    <div id="npCur"></div>
+    <div class="np-next"><canvas id="npThumb" width="240" height="135"></canvas><div id="npNextText"></div></div>
+  </aside>
   </div>
 
   <div id="settings">
@@ -382,13 +443,18 @@
       <button class="fontbtn toggle" id="cdBtn"></button></div>
     <div class="ctrl tele-only" style="min-width:auto"><span class="name">Scroll starts with record</span>
       <button class="fontbtn toggle" id="syncBtn"></button></div>
+    <div class="ctrl photo-only" style="min-width:auto"><span class="name">Shots per snap</span>
+      <div class="tabs" id="burstSeg"></div></div>
+    <div class="ctrl photo-only" style="min-width:auto" id="photoDirCtrl"><span class="name">Photo folder</span>
+      <span class="readout" id="photoDirName" style="text-align:left;min-width:0"></span>
+      <button class="fontbtn" id="photoDirBtn">Change</button></div>
     <label class="ctrl tele-only"><span class="ico">A</span><span class="name">Size</span>
       <input type="range" id="sizeR" min="20" max="140"><span class="readout" id="sizeV"></span></label>
     <label class="ctrl tele-only"><span class="ico">↕</span><span class="name">Leading</span>
       <input type="range" id="lhR" min="100" max="240"><span class="readout" id="lhV"></span></label>
     <label class="ctrl tele-only"><span class="ico">⇆</span><span class="name">Width</span>
       <input type="range" id="wR" min="40" max="100"><span class="readout" id="wV"></span></label>
-    <label class="ctrl tele-only"><span class="ico">◐</span><span class="name">Dim camera</span>
+    <label class="ctrl tele-only"><span class="ico">◐</span><span class="name">Dim behind text</span>
       <input type="range" id="dimR" min="0" max="90"><span class="readout" id="dimV"></span></label>
     <div class="ctrl tele-only" style="min-width:auto"><span class="name">Color</span>
       <div class="group" id="colorGroup"></div></div>
@@ -401,7 +467,15 @@
     <div class="fxrow"><span class="name">Filter</span><div class="chips" id="filterChips"></div></div>
     <label class="fxrow"><span class="name">Brightness</span>
       <input type="range" id="fxBright" min="60" max="140"><span class="readout" id="fxBrightV"></span></label>
-    <div class="fxnote" id="fxNote">Backgrounds and filters are recorded into your takes.</div>
+    <label class="fxrow"><span class="name">Touch up</span>
+      <input type="range" id="fxSmooth" min="0" max="100"><span class="readout" id="fxSmoothV"></span></label>
+    <div class="fxrow"><span class="name">Lips</span><div class="chips" id="lipChips"></div></div>
+    <div class="fxrow"><span class="name">Blush</span><div class="chips" id="blushChips"></div></div>
+    <div class="fxrow"><span class="name">Eyes</span><div class="chips" id="eyeChips"></div></div>
+    <div class="fxrow"><span class="name">Brows</span><div class="chips" id="browChips"></div></div>
+    <label class="fxrow"><span class="name">Intensity</span>
+      <input type="range" id="fxMakeup" min="10" max="100"><span class="readout" id="fxMakeupV"></span></label>
+    <div class="fxnote" id="fxNote">Backgrounds, filters, touch up and makeup are recorded into your takes and photos.</div>
     <input type="file" id="bgFile" accept="image/*" hidden>
   </div>
 
@@ -415,6 +489,10 @@
       <span class="readout" id="slideNum">–</span>
       <button class="btn icon" id="nextSlide" title="Next slide (→ / Space / clicker)">›</button>
     </div>
+    <div class="group">
+      <div class="tabs" id="notesSeg" title="Presenter notes over the slides or beside them — never recorded"></div>
+      <button class="btn" id="notesEditBtn" title="Type your notes, or import them from a .pptx"><span>✎</span><span class="txt">Notes</span></button>
+    </div>
     <div class="tabs" id="layoutSeg" title="Camera on/off (C)"></div>
     <div class="tabs" id="posSeg" title="Camera bubble position"></div>
     <div class="tabs" id="sizeSeg" title="Camera bubble size"></div>
@@ -426,6 +504,7 @@
       <button class="btn icon" id="tpPlayBtn" title="Scroll play / pause (Space)"></button>
       <button class="btn icon" id="tpResetBtn" title="Back to top of script"></button>
     </div>
+    <div class="tabs" id="scrollSeg" title="Auto: scrolls at the speed you set · Manual: scroll with the mouse wheel or ↑↓"></div>
     <div id="speedWrap">
       <span class="lbl">Scroll speed</span>
       <input type="range" id="speedR" min="5" max="200">
@@ -454,6 +533,7 @@
     </div>
     <div class="group">
       <button class="btn" id="recBtn" title="Start / stop recording"></button>
+      <button class="btn" id="newTakeBtn" title="Finish this photo take; the next snap starts a new one"></button>
       <button class="btn" id="playBtn" title="Play / pause the selected take"></button>
       <button class="btn" id="saveBtn" title="Save the selected take"></button>
       <button class="btn danger" id="delBtn" title="Delete the selected take"></button>
@@ -481,7 +561,10 @@
     stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
     save:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>',
     fx:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8l1.4 1.4M17.8 6.2l1.4-1.4M12.2 6.2l-1.4-1.4M15 9l-12 12"/></svg>',
-    trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>'
+    trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>',
+    snap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+    grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>',
+    plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'
   };
   function iconLabel(icon, text) { return icon + '<span class="txt">' + text + '</span>'; }
 
@@ -497,6 +580,8 @@
   var DEFAULTS = { text:SAMPLE, speed:45, fontSize:52, lineHeight:1.5, widthPct:82,
     mirrorH:false, mirrorV:false, colorKey:"amber", fontKey:"sans", useCountdown:true, scrim:0.4,
     project:"", mode:"rec", scrollWithRec:true, bg:"none", filter:"none", brightness:100,
+    touchUp:0, lips:"none", blush:"none", eyes:"none", brows:"none", makeup:60, burst:"1",
+    notesMode:"off", scrollMode:"auto",
     slideLayout:"both", bubblePos:"br", bubbleSize:"m" };
   var S = load();
 
@@ -520,6 +605,7 @@
   var recording = false, recorder = null, chunks = [], recStart = 0, recInterval = null, pendingName = null;
   var takes = [], selectedId = null, nextId = 1;
   var recCanvasTrack = null, audioCtx = null;
+  var photoTake = null, photoView = null, photoDir = null;   // Photo mode
 
   // --- elements ---
   var $ = function (id) { return document.getElementById(id); };
@@ -564,18 +650,154 @@
   // ---------------------------------------------------------------------------
   function setMode(m) {
     S.mode = m; save();
-    var tele = m === "tele", sl = m === "slides";
+    var tele = m === "tele", sl = m === "slides", ph = m === "photo";
     $("tabRec").classList.toggle("sel", m === "rec");
     $("tabTele").classList.toggle("sel", tele);
     $("tabSlides").classList.toggle("sel", sl);
+    $("tabPhoto").classList.toggle("sel", ph);
     stage.classList.toggle("tele", tele);
     stage.classList.toggle("slides", sl);
-    $("prompterBar").classList.toggle("on", tele);
+    stage.classList.toggle("photo", ph);
     $("slidesBar").classList.toggle("on", sl);
     updateSlidesUI();
-    Array.prototype.forEach.call(document.querySelectorAll(".tele-only"), function (el) { el.style.display = tele ? "" : "none"; });
-    if (!tele) tpStop(false);
+    Array.prototype.forEach.call(document.querySelectorAll(".photo-only"), function (el) { el.style.display = ph ? "" : "none"; });
+    if (!ph) photoTake = null;          // leaving Photo mode closes the open photo take
+    updatePrompterUI();
     applyTransform();
+    updateTransport();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Presenter notes. The script is split into sections by a line of "---", one
+  // per slide. In Slides mode the notes can sit over the slides (as the
+  // teleprompter) or in a pane beside them, and they follow the slide you're on.
+  // They're drawn by the page, not on the recording canvas, so takes never show them.
+  // ---------------------------------------------------------------------------
+  var NOTES_MODES = { off: "Notes off", overlay: "Notes over", side: "Notes beside" };
+  var SCROLLS = { auto: "Auto", manual: "Manual" };
+  function promptOn() { return S.mode === "tele" || (S.mode === "slides" && S.notesMode === "overlay"); }
+  function sections() { return (S.text || "").split(/^\s*-{3,}\s*$/m).map(function (t) { return t.trim(); }); }
+  function noteIndex() { return slides.kind === "pdf" || slides.kind === "images" ? slides.index : slides.noteIdx; }
+  function noteTotal() { return slides.kind === "pdf" || slides.kind === "images" ? slides.count : sections().length; }
+
+  function updatePrompterUI() {
+    var on = promptOn(), manual = S.scrollMode === "manual", notes = S.mode === "slides" && S.notesMode !== "off";
+    stage.classList.toggle("notes", S.mode === "slides" && S.notesMode === "overlay");
+    $("main").classList.toggle("side", S.mode === "slides" && S.notesMode === "side");
+    $("prompterBar").classList.toggle("on", on);
+    Array.prototype.forEach.call(document.querySelectorAll(".tele-only"), function (el) { el.style.display = S.mode === "tele" || notes ? "" : "none"; });
+    seg("scrollSeg", SCROLLS, "scrollMode", null, updatePrompterUI);
+    $("tpPlayBtn").disabled = manual; $("speedR").disabled = manual;
+    $("speedWrap").style.opacity = manual ? ".45" : "";
+    if (!on || manual) tpStop(false);
+    syncNotes();
+  }
+  function markSection() {
+    var secs = scriptEl.querySelectorAll(".sec"), i = noteIndex();
+    Array.prototype.forEach.call(secs, function (el, k) { el.classList.toggle("cur", k === i); });
+  }
+  function jumpToSection(i) {
+    var el = scriptEl.querySelectorAll(".sec")[i]; if (!el) return;
+    pos = clamp(el.offsetTop - stage.clientHeight * 0.42, 0, maxScroll());
+    tpAtEnd = false; applyTransform();
+  }
+  function sectionAt(p) {      // which section is on the read line right now
+    var secs = scriptEl.querySelectorAll(".sec"), cur = 0;
+    for (var k = 0; k < secs.length; k++) if (secs[k].offsetTop - stage.clientHeight * 0.42 <= p + 1) cur = k;
+    return cur;
+  }
+  function stepNotes(d) {
+    if (slides.kind === "pdf" || slides.kind === "images") { goSlide(slides.index + d); return; }
+    slides.noteIdx = clamp(slides.noteIdx + d, 0, sections().length - 1);
+    syncNotes();
+  }
+  function syncNotes() {
+    if (S.mode !== "slides") return;
+    markSection();
+    if (S.notesMode === "overlay") jumpToSection(noteIndex());
+    renderNotesPane();
+  }
+  function renderNotesPane() {
+    if (!(S.mode === "slides" && S.notesMode === "side")) return;
+    var secs = sections(), i = noteIndex(), total = noteTotal();
+    $("npNum").textContent = "Slide " + (i + 1) + " / " + total;
+    var cur = $("npCur");
+    cur.textContent = secs[i] || (S.text ? "(no notes for this slide)" : "No notes yet — press Script to type them, or import a .pptx.");
+    cur.style.fontSize = clamp(Math.round(S.fontSize * 0.45), 14, 40) + "px";
+    cur.style.fontFamily = FONTS[S.fontKey] || FONTS.sans;
+    cur.scrollTop = 0;
+    $("npNextText").textContent = i + 1 < total ? (secs[i + 1] || "(no notes)") : "— last slide —";
+    var c = $("npThumb"), cx = c.getContext("2d");
+    cx.fillStyle = "#000"; cx.fillRect(0, 0, c.width, c.height);
+    var nxt = slides.cache[slides.index + 1];
+    if ((slides.kind === "pdf" || slides.kind === "images") && nxt && i + 1 < total) drawFit(cx, nxt, c.width, c.height, false);
+  }
+  function nudge(dy) { pos = clamp(pos + dy, 0, maxScroll()); tpAtEnd = pos >= maxScroll(); applyTransform(); }
+  function autoScrollOnRec() { return promptOn() && S.scrollWithRec && S.scrollMode === "auto"; }
+
+  // Speaker notes from a .pptx (Google Slides: File → Download → Microsoft PowerPoint). A .pptx is a
+  // zip of XML files; entries are inflated with the browser's own DecompressionStream, so no library is needed.
+  function zipOpen(buf) {
+    var dv = new DataView(buf), u8 = new Uint8Array(buf), e = u8.length - 22;
+    while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+    if (e < 0) throw new Error("zip");
+    var count = dv.getUint16(e + 10, true), off = dv.getUint32(e + 16, true), list = {}, td = new TextDecoder();
+    for (var i = 0; i < count && dv.getUint32(off, true) === 0x02014b50; i++) {
+      var nameLen = dv.getUint16(off + 28, true), extraLen = dv.getUint16(off + 30, true), cmtLen = dv.getUint16(off + 32, true);
+      list[td.decode(u8.subarray(off + 46, off + 46 + nameLen))] = { method: dv.getUint16(off + 10, true), csize: dv.getUint32(off + 20, true), lho: dv.getUint32(off + 42, true) };
+      off += 46 + nameLen + extraLen + cmtLen;
+    }
+    return { u8: u8, dv: dv, list: list };
+  }
+  function zipText(z, name) {
+    var en = z.list[name]; if (!en) return Promise.resolve(null);
+    var lh = en.lho, start = lh + 30 + z.dv.getUint16(lh + 26, true) + z.dv.getUint16(lh + 28, true);
+    var data = z.u8.subarray(start, start + en.csize);
+    if (en.method === 0) return Promise.resolve(new TextDecoder().decode(data));
+    if (en.method !== 8 || !window.DecompressionStream) return Promise.reject(new Error("deflate"));
+    var ds = new DecompressionStream("deflate-raw"), w = ds.writable.getWriter();
+    w.write(data); w.close();
+    return new Response(ds.readable).text();
+  }
+  function xmlLines(xml) {
+    var paras = xml.match(/<a:p\b[\s\S]*?<\/a:p>/g) || [];
+    return paras.map(function (p) {
+      return (p.replace(/<a:br\s*\/>/g, "<a:t>\n</a:t>").match(/<a:t[^>]*>[\s\S]*?<\/a:t>/g) || []).map(function (t) { return t.replace(/<[^>]+>/g, ""); }).join("");
+    }).join("\n").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, function (m, n) { return String.fromCharCode(n); }).replace(/&amp;/g, "&").trim();
+  }
+  function attr(tag, name) { var m = tag && tag.match(new RegExp("\\b" + name + '="([^"]*)"')); return m ? m[1] : ""; }
+  function importPptx(file) {
+    if (!file) return;
+    toast("Reading notes from " + file.name + "…");
+    file.arrayBuffer().then(function (buf) {
+      var z = zipOpen(buf);
+      return Promise.all([zipText(z, "ppt/presentation.xml"), zipText(z, "ppt/_rels/presentation.xml.rels")]).then(function (r) {
+        if (!r[0] || !r[1]) throw new Error("pptx");
+        var rels = {};
+        (r[1].match(/<Relationship\b[^>]*>/g) || []).forEach(function (t) { rels[attr(t, "Id")] = attr(t, "Target"); });
+        var slidePaths = (r[0].match(/<p:sldId\b[^>]*>/g) || []).map(function (t) { return rels[attr(t, "r:id")]; })
+          .filter(Boolean).map(function (t) { return "ppt/" + t.replace(/^\/?ppt\//, ""); });
+        return Promise.all(slidePaths.map(function (sp) {
+          return zipText(z, sp.replace(/slides\/([^\/]+)$/, "slides/_rels/$1.rels")).then(function (rx) {
+            var m = rx && rx.match(/<Relationship\b[^>]*notesSlide"[^>]*>/), target = attr(m && m[0], "Target");
+            if (!target) return "";
+            return zipText(z, "ppt/" + target.replace(/^(\.\.\/)+/, "").replace(/^\/?ppt\//, "")).then(function (nx) {
+              var shapes = (nx || "").match(/<p:sp\b[\s\S]*?<\/p:sp>/g) || [];
+              return shapes.filter(function (sh) { return !/type="(sldNum|sldImg)"/.test(sh); }).map(xmlLines).filter(Boolean).join("\n");
+            });
+          });
+        }));
+      });
+    }).then(function (notes) {
+      if (!notes.length) throw new Error("none");
+      S.text = notes.map(function (t, i) { return t || "(no notes for slide " + (i + 1) + ")"; }).join("\n\n---\n\n");
+      $("scriptInput").value = S.text;
+      applyText(); tpReset(); save(); syncNotes();
+      var withText = notes.filter(Boolean).length;
+      toast("Imported notes for " + notes.length + " slides (" + withText + " with text).");
+    }).catch(function () {
+      toast("Couldn't read notes from that file. In Google Slides use File → Download → Microsoft PowerPoint (.pptx).", true);
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -583,11 +805,22 @@
   // ---------------------------------------------------------------------------
   function applyTheme() { document.documentElement.style.setProperty("--accent", COLORS[S.colorKey] || COLORS.amber); }
   function applyText() {
-    scriptEl.textContent = S.text || "Your script will appear here…";
+    scriptEl.innerHTML = "";
+    if (!S.text) scriptEl.textContent = "Your script will appear here…";
+    else {
+      var secs = sections();
+      secs.forEach(function (t, i) {
+        var d = document.createElement("div"); d.className = "sec";
+        if (secs.length > 1) { var l = document.createElement("div"); l.className = "seclbl"; l.textContent = "Slide " + (i + 1); d.appendChild(l); }
+        var b = document.createElement("div"); b.textContent = t; d.appendChild(b);
+        scriptEl.appendChild(d);
+      });
+    }
     scriptEl.style.fontFamily = FONTS[S.fontKey] || FONTS.sans;
     scriptEl.style.fontSize = S.fontSize + "px";
     scriptEl.style.lineHeight = S.lineHeight;
     scriptEl.style.maxWidth = S.widthPct + "%";
+    if (S.mode === "slides") { markSection(); renderNotesPane(); }
   }
   function applyTransform() {
     var sx = S.mirrorH ? -1 : 1, sy = S.mirrorV ? -1 : 1;
@@ -604,6 +837,7 @@
     rafId = requestAnimationFrame(step);
   }
   function tpStart() {
+    if (S.scrollMode === "manual") return;
     if (tpAtEnd) { pos = 0; tpAtEnd = false; applyTransform(); }
     tpPlaying = true; $("tpPlayBtn").innerHTML = I.pause;
     lastTs = null; cancelAnimationFrame(rafId); rafId = requestAnimationFrame(step);
@@ -618,6 +852,7 @@
     tpStop(false); tpAtEnd = false; pos = 0; applyTransform();
   }
   function tpToggle() {
+    if (S.scrollMode === "manual") return;
     if (countdownTimer) { cancelCountdown(); return; }
     if (tpPlaying) tpStop(false);
     else { goLive(); runCountdown(tpStart); }
@@ -744,7 +979,7 @@
     return f.trim() || "none";
   }
   function bgNeedsPerson() { return S.bg !== "none"; }
-  function effectsActive() { return bgNeedsPerson() || filterCss() !== "none"; }
+  function effectsActive() { return bgNeedsPerson() || filterCss() !== "none" || faceNeeded(); }
 
   function bgCanvas(key) {
     if (bgCanvases[key]) return bgCanvases[key];
@@ -762,20 +997,29 @@
   }
   function drawCover(ctx, src, w, h) { drawFit(ctx, src, w, h, true); }
 
+  // The MediaPipe runtime is shared by the background and face models.
+  var visionLoading = null;
+  function loadVision() {
+    if (!visionLoading) {
+      visionLoading = import(MP_BASE + "/vision_bundle.mjs").then(function (vision) {
+        return vision.FilesetResolver.forVisionTasks(MP_BASE + "/wasm").then(function (files) { return { vision: vision, files: files }; });
+      }).catch(function (e) { visionLoading = null; throw e; });
+    }
+    return visionLoading;
+  }
+
   function loadSegmenter() {
     if (segmenter) return Promise.resolve(segmenter);
     if (segLoading) return segLoading;
     toast("Loading background effects…");
-    segLoading = import(MP_BASE + "/vision_bundle.mjs").then(function (vision) {
-      return vision.FilesetResolver.forVisionTasks(MP_BASE + "/wasm").then(function (files) {
-        function make(delegate) {
-          return vision.ImageSegmenter.createFromOptions(files, {
-            baseOptions: { modelAssetPath: MP_MODEL, delegate: delegate },
-            runningMode: "VIDEO", outputConfidenceMasks: true, outputCategoryMask: false
-          });
-        }
-        return make("GPU").catch(function () { return make("CPU"); });
-      });
+    segLoading = loadVision().then(function (v) {
+      function make(delegate) {
+        return v.vision.ImageSegmenter.createFromOptions(v.files, {
+          baseOptions: { modelAssetPath: MP_MODEL, delegate: delegate },
+          runningMode: "VIDEO", outputConfidenceMasks: true, outputCategoryMask: false
+        });
+      }
+      return make("GPU").catch(function () { return make("CPU"); });
     }).then(function (s) {
       segmenter = s; segFailed = false;
       if ($("toastMsg").textContent.indexOf("Loading background") === 0) $("toast").className = "";
@@ -829,43 +1073,51 @@
     sizeCanvas(personCv, w, h);
     var f = filterCss();
     if (bgNeedsPerson() && segmenter) updateMask();
+    if (faceNeeded() && faceLm) updateFace();
     var useBg = bgNeedsPerson() && segmenter && maskImg !== null;
     if (!useBg) {
       octx.filter = f; octx.drawImage(video, 0, 0, w, h); octx.filter = "none";
-      return;
-    }
-    // background
-    if (S.bg === "blur" || S.bg === "blur2") {
-      var r = Math.round((S.bg === "blur" ? 10 : 24) * w / 1280), m = r * 2;
-      octx.filter = (f === "none" ? "" : f + " ") + "blur(" + r + "px)";
-      octx.drawImage(video, -m, -m, w + m * 2, h + m * 2);   // oversize so the edges don't fade
     } else {
-      var src = bgCanvas(S.bg);
+      // background
+      if (S.bg === "blur" || S.bg === "blur2") {
+        var r = Math.round((S.bg === "blur" ? 10 : 24) * w / 1280), m = r * 2;
+        octx.filter = (f === "none" ? "" : f + " ") + "blur(" + r + "px)";
+        octx.drawImage(video, -m, -m, w + m * 2, h + m * 2);   // oversize so the edges don't fade
+      } else {
+        var src = bgCanvas(S.bg);
+        octx.filter = f;
+        if (src) drawCover(octx, src, w, h); else { octx.fillStyle = "#000"; octx.fillRect(0, 0, w, h); }
+      }
+      // person on top
+      pctx.globalCompositeOperation = "copy";
+      pctx.drawImage(video, 0, 0, w, h);
+      pctx.globalCompositeOperation = "destination-in";
+      pctx.imageSmoothingEnabled = true;
+      pctx.drawImage(maskCv, 0, 0, w, h);
+      pctx.globalCompositeOperation = "source-over";
       octx.filter = f;
-      if (src) drawCover(octx, src, w, h); else { octx.fillStyle = "#000"; octx.fillRect(0, 0, w, h); }
+      octx.drawImage(personCv, 0, 0);
+      octx.filter = "none";
     }
-    // person on top
-    pctx.globalCompositeOperation = "copy";
-    pctx.drawImage(video, 0, 0, w, h);
-    pctx.globalCompositeOperation = "destination-in";
-    pctx.imageSmoothingEnabled = true;
-    pctx.drawImage(maskCv, 0, 0, w, h);
-    pctx.globalCompositeOperation = "source-over";
-    octx.filter = f;
-    octx.drawImage(personCv, 0, 0);
-    octx.filter = "none";
+    // touch up + makeup go on last, over whatever was drawn
+    if (faceNeeded() && faceLm) drawFaceFx(octx, w, h, f);
   }
   // Frames are driven by a tiny worker timer instead of requestAnimationFrame, which the
   // browser pauses when this tab is hidden — e.g. while you click through Google Slides
   // in another tab. That keeps recordings running smoothly in the background.
-  var ticker = null;
+  var ticker = null, lastDrawEnd = 0;
   function renderLoop() { drawFrame(); renderId = requestAnimationFrame(renderLoop); }
   function startRender() {
     if (ticker || renderId) return;
     try {
       var src = "var t;onmessage=function(e){clearInterval(t);if(e.data)t=setInterval(function(){postMessage(1)},e.data)}";
       ticker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
-      ticker.onmessage = function () { try { drawFrame(); } catch (e) {} };
+      // ticks that queued up while a slow frame was drawing are dropped, so the page itself stays responsive
+      ticker.onmessage = function () {
+        if (performance.now() - lastDrawEnd < 12) return;
+        try { drawFrame(); } catch (e) {}
+        lastDrawEnd = performance.now();
+      };
       ticker.postMessage(33);
     } catch (e) { ticker = null; renderId = requestAnimationFrame(renderLoop); }
   }
@@ -941,6 +1193,175 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Face effects: touch up (skin smoothing) and makeup. A second on-device model
+  // (MediaPipe Face Landmarker) finds 468 points on the face each frame, and the
+  // effects are painted from those points. Nothing leaves the computer.
+  // ---------------------------------------------------------------------------
+  var FACE_MODEL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+  var LIPS  = { none:["Off"], nude:["Nude","#b8766a"], rose:["Rose","#c2516d"], red:["Red","#b3202e"], berry:["Berry","#7d2a4f"], coral:["Coral","#d8564a"] };
+  var BLUSH = { none:["Off"], peach:["Peach","#e38b6c"], pink:["Pink","#e07a95"], rose:["Rose","#c95d78"] };
+  var EYES  = { none:["Off"], smoky:["Smoky","#4a4650"], bronze:["Bronze","#8a5a3c"], plum:["Plum","#6b3a62"], teal:["Teal","#2f6b72"] };
+  var BROWS = { none:["Off", 0], soft:["Soft", 0.3], defined:["Defined", 0.55], bold:["Bold", 0.8] };
+  // landmark numbers from the MediaPipe face mesh (R = the subject's right, on the left of the image)
+  var FM = {
+    oval:[10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109],
+    lipsOut:[61,185,40,39,37,0,267,269,270,409,291,375,321,405,314,17,84,181,91,146],
+    lipsIn:[78,191,80,81,82,13,312,311,310,415,308,324,318,402,317,14,87,178,88,95],
+    eyeR:[33,246,161,160,159,158,157,173,133,155,154,153,145,144,163,7],
+    eyeL:[263,466,388,387,386,385,384,398,362,382,381,380,374,373,390,249],
+    lidR:[33,246,161,160,159,158,157,173,133], browRLo:[46,53,52,65,55], browR:[46,53,52,65,55,107,66,105,63,70],
+    lidL:[263,466,388,387,386,385,384,398,362], browLLo:[276,283,282,295,285], browL:[276,283,282,295,285,336,296,334,293,300],
+    cheekR:[50,205], cheekL:[280,425]
+  };
+  var faceLm = null, faceLoading = null, face = null, faceSeen = 0, lastFaceTs = 0, lastFaceVideoTime = -1, faceCost = 0, faceSkipped = false;
+  var fxCv = document.createElement("canvas"), fctx = fxCv.getContext("2d");
+  var tmCv = document.createElement("canvas"), tctx = tmCv.getContext("2d");
+
+  function makeupOn() { return S.lips !== "none" || S.blush !== "none" || S.eyes !== "none" || S.brows !== "none"; }
+  function faceNeeded() { return S.touchUp > 0 || makeupOn(); }
+
+  function loadFace() {
+    if (faceLm) return Promise.resolve(faceLm);
+    if (faceLoading) return faceLoading;
+    toast("Loading face effects…");
+    faceLoading = loadVision().then(function (v) {
+      function make(delegate) {
+        return v.vision.FaceLandmarker.createFromOptions(v.files, {
+          baseOptions: { modelAssetPath: FACE_MODEL, delegate: delegate },
+          runningMode: "VIDEO", numFaces: 1
+        });
+      }
+      return make("GPU").catch(function () { return make("CPU"); });
+    }).then(function (f) {
+      faceLm = f;
+      if ($("toastMsg").textContent.indexOf("Loading face") === 0) $("toast").className = "";
+      return f;
+    }).catch(function (err) {
+      faceLoading = null;
+      toast("Couldn't load face effects. They need an internet connection the first time.", true);
+      S.touchUp = 0; S.lips = S.blush = S.eyes = S.brows = "none"; save(); buildFaceUI();
+      throw err;
+    });
+    return faceLoading;
+  }
+
+  // Find the face on the newest camera frame; positions are smoothed to stop them jittering.
+  function updateFace() {
+    if (video.currentTime === lastFaceVideoTime) return;
+    lastFaceVideoTime = video.currentTime;
+    if (faceCost > 24 && !faceSkipped) { faceSkipped = true; return; }   // slow machine: look every other frame
+    faceSkipped = false;
+    var ts = performance.now(); if (ts <= lastFaceTs) ts = lastFaceTs + 1; lastFaceTs = ts;
+    var lm = null;
+    try { var res = faceLm.detectForVideo(video, ts); lm = res && res.faceLandmarks && res.faceLandmarks[0]; } catch (e) {}
+    faceCost = faceCost * 0.7 + (performance.now() - ts) * 0.3;
+    if (!lm) { if (face && performance.now() - faceSeen > 500) face = null; return; }   // hold the last position briefly
+    faceSeen = performance.now();
+    if (!face || face.length !== lm.length) { face = lm.map(function (p) { return [p.x, p.y]; }); return; }
+    for (var i = 0; i < lm.length; i++) {
+      face[i][0] += (lm[i].x - face[i][0]) * 0.6;
+      face[i][1] += (lm[i].y - face[i][1]) * 0.6;
+    }
+  }
+
+  function pt(i, w, h) { return [face[i][0] * w, face[i][1] * h]; }
+  function dist(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
+  function rgba(hex, a) { return "rgba(" + parseInt(hex.slice(1, 3), 16) + "," + parseInt(hex.slice(3, 5), 16) + "," + parseInt(hex.slice(5, 7), 16) + "," + a + ")"; }
+  function tracePts(ctx, pts, cont) {
+    if (!cont) ctx.beginPath();
+    pts.forEach(function (p, i) { if (i) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]); });
+    ctx.closePath();
+  }
+  function trace(ctx, idx, w, h, cont) { tracePts(ctx, idx.map(function (i) { return pt(i, w, h); }), cont); }
+  // Eyeshadow area: the upper lid, stretched part of the way up towards the brow (more at the outer corner).
+  function shadowPts(lid, brow, w, h) {
+    var top = lid.map(function (i, k) {
+      var t = k / (lid.length - 1), b = t * (brow.length - 1), b0 = Math.floor(b), b1 = Math.min(brow.length - 1, b0 + 1), fr = b - b0;
+      var p = pt(i, w, h), q0 = pt(brow[b0], w, h), q1 = pt(brow[b1], w, h);
+      var bx = q0[0] + (q1[0] - q0[0]) * fr, by = q0[1] + (q1[1] - q0[1]) * fr, k2 = 0.62 - 0.2 * t;
+      return [p[0] + (bx - p[0]) * k2, p[1] + (by - p[1]) * k2];
+    });
+    return lid.map(function (i) { return pt(i, w, h); }).concat(top.reverse());
+  }
+
+  function drawFaceFx(octx, w, h, f) {
+    if (!face) return;
+    var ipd = dist(pt(33, w, h), pt(263, w, h));   // eye-to-eye distance scales every effect with the face
+    if (!(ipd > 1)) return;
+    sizeCanvas(fxCv, w, h);
+
+    // --- touch up: soften the skin inside the face oval; eyes, brows and lips stay sharp ---
+    var s = S.touchUp / 100;
+    if (s > 0) {
+      var w2 = w >> 1, h2 = h >> 1;                  // the mask is built at half size, it's soft anyway
+      sizeCanvas(tmCv, w2, h2);
+      tctx.globalCompositeOperation = "source-over"; tctx.filter = "none"; tctx.clearRect(0, 0, w2, h2);
+      tctx.filter = "blur(" + Math.round(ipd * 0.06) + "px)"; tctx.fillStyle = "#fff";
+      trace(tctx, FM.oval, w2, h2); tctx.fill();
+      tctx.globalCompositeOperation = "destination-out"; tctx.filter = "blur(" + Math.round(ipd * 0.02) + "px)";
+      [FM.eyeR, FM.eyeL, FM.lipsOut, FM.browR, FM.browL].forEach(function (idx) { trace(tctx, idx, w2, h2); tctx.fill(); });
+      tctx.filter = "none"; tctx.globalCompositeOperation = "source-over";
+      fctx.globalCompositeOperation = "copy"; fctx.filter = "blur(" + (ipd * (0.02 + 0.05 * s)).toFixed(1) + "px)";
+      fctx.drawImage(video, 0, 0, w, h);
+      fctx.filter = "none"; fctx.globalCompositeOperation = "destination-in";
+      fctx.drawImage(tmCv, 0, 0, w, h);
+      fctx.globalCompositeOperation = "source-over";
+      octx.globalAlpha = 0.85 * s; octx.filter = f; octx.drawImage(fxCv, 0, 0); octx.globalAlpha = 1; octx.filter = "none";
+    }
+
+    // --- makeup: painted on a scratch canvas, then multiplied onto the face like real pigment ---
+    if (!makeupOn()) return;
+    var m = S.makeup / 100;
+    fctx.globalCompositeOperation = "source-over"; fctx.filter = "none"; fctx.globalAlpha = 1; fctx.clearRect(0, 0, w, h);
+    if (S.lips !== "none") {
+      fctx.filter = "blur(" + (ipd * 0.012).toFixed(1) + "px)"; fctx.fillStyle = LIPS[S.lips][1]; fctx.globalAlpha = 0.8 * m;
+      trace(fctx, FM.lipsOut, w, h); trace(fctx, FM.lipsIn, w, h, true); fctx.fill("evenodd");
+    }
+    if (S.blush !== "none") {
+      fctx.filter = "none"; fctx.globalAlpha = 0.5 * m;
+      [FM.cheekR, FM.cheekL].forEach(function (c) {
+        var a = pt(c[0], w, h), b = pt(c[1], w, h), cx = (a[0] + b[0]) / 2, cy = (a[1] + b[1]) / 2, r = ipd * 0.32;
+        var g = fctx.createRadialGradient(cx, cy, 0, cx, cy, r), col = BLUSH[S.blush][1];
+        g.addColorStop(0, rgba(col, 1)); g.addColorStop(0.5, rgba(col, 0.55)); g.addColorStop(1, rgba(col, 0));
+        fctx.fillStyle = g; fctx.beginPath(); fctx.arc(cx, cy, r, 0, Math.PI * 2); fctx.fill();
+      });
+    }
+    if (S.eyes !== "none") {
+      fctx.filter = "blur(" + (ipd * 0.05).toFixed(1) + "px)"; fctx.fillStyle = EYES[S.eyes][1]; fctx.globalAlpha = 0.55 * m;
+      tracePts(fctx, shadowPts(FM.lidR, FM.browRLo, w, h)); fctx.fill();
+      tracePts(fctx, shadowPts(FM.lidL, FM.browLLo, w, h)); fctx.fill();
+    }
+    if (S.brows !== "none") {
+      fctx.filter = "blur(" + (ipd * 0.015).toFixed(1) + "px)"; fctx.fillStyle = "#2b1d16"; fctx.globalAlpha = BROWS[S.brows][1] * m;
+      trace(fctx, FM.browR, w, h); fctx.fill(); trace(fctx, FM.browL, w, h); fctx.fill();
+    }
+    fctx.filter = "none"; fctx.globalAlpha = 1;
+    octx.globalCompositeOperation = "multiply"; octx.filter = f; octx.drawImage(fxCv, 0, 0);
+    octx.globalCompositeOperation = "source-over"; octx.filter = "none";
+  }
+
+  function setFace(key, val) {
+    if (recording) return;
+    S[key] = val; save(); buildFaceUI(); updateTransport();
+    if (faceNeeded()) loadFace().catch(function () {});
+  }
+  function buildFaceUI() {
+    function row(id, map, key) {
+      var g = $(id); g.innerHTML = "";
+      Object.keys(map).forEach(function (k) {
+        var swatch = typeof map[k][1] === "string";
+        var c = chip(map[k][0], S[key] === k, function () { setFace(key, k); }, null, swatch ? "color" : "plain");
+        if (swatch) c.style.background = map[k][1];
+        g.appendChild(c);
+      });
+    }
+    row("lipChips", LIPS, "lips"); row("blushChips", BLUSH, "blush"); row("eyeChips", EYES, "eyes"); row("browChips", BROWS, "brows");
+    $("fxSmooth").value = S.touchUp; $("fxSmoothV").textContent = S.touchUp ? S.touchUp + "%" : "Off";
+    $("fxMakeup").value = S.makeup; $("fxMakeupV").textContent = S.makeup + "%";
+    $("fxMakeup").disabled = !makeupOn();
+  }
+
+  // ---------------------------------------------------------------------------
   // Slides mode: your deck fills the frame, with your camera in a bubble you can
   // turn on/off at any time (even mid-take). Two ways to bring slides in:
   //  - a PDF (Google Slides → File → Download → PDF), clicked through right here
@@ -948,7 +1369,7 @@
   // ---------------------------------------------------------------------------
   var PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174";
   var OUT_W = 1920, OUT_H = 1080;
-  var slides = { kind: null, name: "", pdf: null, images: [], count: 0, index: 0, cache: {}, pending: {}, shown: null, screenStream: null };
+  var slides = { kind: null, name: "", pdf: null, images: [], count: 0, index: 0, noteIdx: 0, cache: {}, pending: {}, shown: null, screenStream: null };
   var camCv = document.createElement("canvas"), cctx = camCv.getContext("2d");
   var LAYOUTS = { both: "Slides + camera", slides: "Slides only", camera: "Camera only" };
   var POSITIONS = { tl: "↖", tr: "↗", bl: "↙", br: "↘" };
@@ -972,8 +1393,8 @@
     if (slides.screenStream) slides.screenStream.getTracks().forEach(function (t) { t.onended = null; t.stop(); });
     if (slides.pdf) { try { slides.pdf.destroy(); } catch (e) {} }
     screenVid.srcObject = null;
-    slides = { kind: null, name: "", pdf: null, images: [], count: 0, index: 0, cache: {}, pending: {}, shown: null, screenStream: null };
-    updateSlidesUI();
+    slides = { kind: null, name: "", pdf: null, images: [], count: 0, index: 0, noteIdx: 0, cache: {}, pending: {}, shown: null, screenStream: null };
+    updateSlidesUI(); syncNotes();
   }
 
   function loadSlideFiles(files) {
@@ -1028,6 +1449,7 @@
       return page.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise.then(function () {
         if (slides.pdf !== doc) return;   // a different deck was loaded meanwhile
         slides.cache[i] = c; delete slides.pending[i];
+        renderNotesPane();
       });
     }).catch(function () { delete slides.pending[i]; });
   }
@@ -1037,7 +1459,7 @@
     // keep only nearby slides in memory; render the current one and the next ahead of time
     if (slides.kind === "pdf") Object.keys(slides.cache).forEach(function (k) { if (Math.abs(k - slides.index) > 2) delete slides.cache[k]; });
     renderSlide(slides.index); renderSlide(slides.index + 1); renderSlide(slides.index - 1);
-    updateSlidesUI();
+    updateSlidesUI(); syncNotes();
   }
 
   function shareTab() {
@@ -1090,13 +1512,13 @@
     octx.beginPath(); octx.arc(x + D / 2, y + D / 2, D / 2, 0, Math.PI * 2); octx.stroke();
   }
 
-  function seg(id, map, key, labelOf) {
+  function seg(id, map, key, labelOf, after) {
     var g = $(id); g.innerHTML = "";
     Object.keys(map).forEach(function (k) {
       var b = document.createElement("button");
       b.className = "tab" + (S[key] === k ? " sel" : "");
       b.textContent = labelOf ? labelOf(map[k]) : map[k];
-      b.onclick = function () { S[key] = k; save(); updateSlidesUI(); };
+      b.onclick = function () { S[key] = k; save(); (after || updateSlidesUI)(); };
       g.appendChild(b);
     });
   }
@@ -1108,6 +1530,7 @@
     $("prevSlide").disabled = !paged || slides.index <= 0;
     $("nextSlide").disabled = !paged || slides.index >= slides.count - 1;
     $("shareTabBtn").textContent = slides.kind === "screen" ? "Stop sharing" : "Share tab";
+    seg("notesSeg", NOTES_MODES, "notesMode", null, function () { updateSlidesUI(); updatePrompterUI(); });
     seg("layoutSeg", LAYOUTS, "slideLayout");
     seg("posSeg", POSITIONS, "bubblePos");
     seg("sizeSeg", SIZES, "bubbleSize", function (v) { return v[0]; });
@@ -1147,7 +1570,7 @@
     ensureStream().then(function () {
       runCountdown(function () {
         startRecording();
-        if (S.mode === "tele" && S.scrollWithRec) tpStart();
+        if (autoScrollOnRec()) tpStart();
       });
     }).catch(handleCamError);
   }
@@ -1186,7 +1609,7 @@
       try { recorder.stop(); } catch (e) {}
     }
     if (recInterval) { clearInterval(recInterval); recInterval = null; }
-    if (S.mode === "tele" && S.scrollWithRec) tpStop(false);
+    if (autoScrollOnRec()) tpStop(false);
     updateTransport();
   }
   function finalizeRecording(info) {
@@ -1225,7 +1648,7 @@
       b.title = t.name + (t.saved ? " (saved)" : " (not saved yet)");
       b.innerHTML = "<span></span><span class='meta'></span>" + (t.saved ? "<span class='ok'>✓</span>" : "");
       b.children[0].textContent = (takes.some(function (o) { return o.project !== t.project; }) ? t.project + " · " : "") + "Take " + t.num;
-      b.children[1].textContent = fmtTime(t.duration);
+      b.children[1].textContent = t.kind === "photo" ? t.photos.length + " photo" + (t.photos.length === 1 ? "" : "s") : fmtTime(t.duration);
       b.onclick = function () { selectTake(t.id); };
       box.appendChild(b);
       if (t.id === selectedId) b.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -1237,10 +1660,12 @@
     selectedId = id;
     var t = selected();
     playback.pause();
-    if (t) {
+    if (t && t.kind === "photo") showPhotos(t, t.photos.length - 1);
+    else if (t) {
+      stage.classList.remove("photoview");
       playback.src = t.url;
       playback.currentTime = 0;
-      $("reviewLabel").textContent = t.name;
+      $("reviewKind").textContent = "▶ PLAYBACK"; $("reviewLabel").textContent = t.name;
       stage.classList.add("reviewing");
       tpStop(false);
     }
@@ -1248,12 +1673,17 @@
   }
   function goLive() {
     playback.pause();
-    stage.classList.remove("reviewing");
+    stage.classList.remove("reviewing"); stage.classList.remove("photoview");
     updateTransport();
   }
 
   function togglePlayback() {
     var t = selected(); if (!t || recording) return;
+    if (t.kind === "photo") {
+      if (stage.classList.contains("photoview")) goLive();
+      else showPhotos(t, photoView && photoView.id === t.id ? photoView.index : t.photos.length - 1);
+      return;
+    }
     if (!stage.classList.contains("reviewing")) { stage.classList.add("reviewing"); tpStop(false); }
     if (playback.paused || playback.ended) { playback.play().catch(function () {}); }
     else playback.pause();
@@ -1263,6 +1693,7 @@
   // Other browsers fall back to a normal download.
   function saveTake() {
     var t = selected(); if (!t) return;
+    if (t.kind === "photo") { savePhotos(t); return; }
     var fileName = safeFile(t.name) + "." + t.ext;
     if (window.showSaveFilePicker) {
       var accept = {}; accept[t.type] = ["." + t.ext];
@@ -1291,37 +1722,184 @@
 
   function deleteTake() {
     var t = selected(); if (!t) return;
-    var msg = "Delete " + t.name + "?" + (t.saved ? "" : "\n\nIt hasn't been saved, so it will be gone for good.");
+    var what = t.kind === "photo" ? t.name + " (" + t.photos.length + " photo" + (t.photos.length === 1 ? "" : "s") + ")" : t.name;
+    var msg = "Delete " + what + "?" + (t.saved ? "" : "\n\nIt hasn't been saved, so it will be gone for good.");
     if (!window.confirm(msg)) return;
-    var idx = takes.indexOf(t);
-    playback.pause(); playback.removeAttribute("src"); playback.load();
-    URL.revokeObjectURL(t.url);
+    dropTake(t);
+    toast(t.name + " deleted.");
+  }
+  function dropTake(t) {
+    var idx = takes.indexOf(t); if (idx < 0) return;
+    if (t.kind === "photo") {
+      t.photos.forEach(function (p) { URL.revokeObjectURL(p.url); });
+      if (photoTake === t) photoTake = null;
+    } else {
+      playback.pause(); playback.removeAttribute("src"); playback.load();
+      URL.revokeObjectURL(t.url);
+    }
     takes.splice(idx, 1);
     var next = takes[idx] || takes[idx - 1];
     if (next) selectTake(next.id);
     else { selectedId = null; goLive(); renderTakes(); }
-    toast(t.name + " deleted.");
   }
+
+  // ---------------------------------------------------------------------------
+  // Photo mode: Snap grabs a still of exactly what's on screen (effects included).
+  // Every snap until "New take" lands in the same take, and a take saves as a
+  // folder: "<Project> - Take 3/<Project> - Take 3 - 01.jpg", "- 02.jpg", …
+  // ---------------------------------------------------------------------------
+  var BURSTS = { "1": "1", "3": "3", "5": "5" };
+
+  function requestSnap() {
+    if (countdownTimer) { cancelCountdown(); return; }
+    goLive();
+    ensureStream().then(function () { runCountdown(function () { snapBurst(+S.burst || 1); }); }).catch(handleCamError);
+  }
+  function snapBurst(n) {
+    var i = 0;
+    (function one() { snapPhoto(function () { if (++i < n) setTimeout(one, 400); }); })();
+  }
+  function flash() { var fl = $("flash"); fl.classList.remove("on"); void fl.offsetWidth; fl.classList.add("on"); }
+  function snapPhoto(done) {
+    if (!camReady()) { toast("The camera isn't ready yet.", true); return; }
+    drawFrame(); flash();
+    var w = out.width, h = out.height;
+    out.toBlob(function (blob) {
+      if (!blob) { toast("Couldn't capture that photo.", true); return; }
+      var t = photoTake;
+      if (!t) {
+        var project = projectName(), num = claimTakeNum(project);
+        t = { id: nextId++, kind: "photo", project: project, num: num, day: todayKey(), name: project + " - Take " + num, photos: [], saved: false };
+        takes.push(t); photoTake = t;
+      }
+      t.photos.push({ blob: blob, url: URL.createObjectURL(blob), w: w, h: h });
+      t.saved = false; selectedId = t.id;
+      renderTakes(); updateTransport();
+      if (done) done();
+    }, "image/jpeg", 0.92);
+  }
+  function newPhotoTake() { photoTake = null; selectedId = null; goLive(); renderTakes(); updateTransport(); }
+
+  function showPhotos(t, i) {
+    photoView = { id: t.id, index: i };
+    $("reviewKind").textContent = "PHOTOS";
+    stage.classList.add("reviewing"); stage.classList.add("photoview"); tpStop(false);
+    renderPhotoReview();
+  }
+  function renderPhotoReview() {
+    var t = selected(); if (!t || t.kind !== "photo" || !photoView) return;
+    var i = photoView.index = clamp(photoView.index, 0, t.photos.length - 1);
+    $("photoBig").src = t.photos[i].url;
+    $("reviewLabel").textContent = t.name + " · " + (i + 1) + " / " + t.photos.length;
+    var strip = $("photoStrip"); strip.innerHTML = "";
+    t.photos.forEach(function (p, k) {
+      var d = document.createElement("div"); d.className = "pthumb" + (k === i ? " sel" : "");
+      var img = document.createElement("img"); img.src = p.url; img.alt = ""; d.appendChild(img);
+      var n = document.createElement("span"); n.className = "num"; n.textContent = pad(k + 1); d.appendChild(n);
+      var x = document.createElement("button"); x.className = "x"; x.textContent = "✕"; x.title = "Remove this photo";
+      x.onclick = function (e) { e.stopPropagation(); removePhoto(t, k); };
+      d.appendChild(x);
+      d.onclick = function () { photoView.index = k; renderPhotoReview(); };
+      strip.appendChild(d);
+      if (k === i) d.scrollIntoView({ block: "nearest", inline: "nearest" });
+    });
+  }
+  function stepPhoto(d) { if (photoView) { photoView.index += d; renderPhotoReview(); } }
+  function removePhoto(t, k) {
+    URL.revokeObjectURL(t.photos[k].url); t.photos.splice(k, 1); t.saved = false;
+    if (!t.photos.length) { dropTake(t); toast(t.name + " deleted."); return; }
+    renderPhotoReview(); renderTakes(); updateTransport();
+  }
+
+  function photoFile(t, i) { return safeFile(t.name) + " - " + pad(i + 1) + ".jpg"; }
+  function savePhotos(t) {
+    if (!window.showDirectoryPicker) { downloadPhotos(t); return; }
+    var n = t.photos.length;
+    photoFolder(false).then(function (dir) {
+      return dir.getDirectoryHandle(safeFile(t.name), { create: true }).then(function (sub) {
+        var i = 0;
+        function next() {
+          if (i >= t.photos.length) return Promise.resolve();
+          var blob = t.photos[i].blob, name = photoFile(t, i); i++;
+          return sub.getFileHandle(name, { create: true })
+            .then(function (fh) { return fh.createWritable(); })
+            .then(function (w) { return w.write(blob).then(function () { return w.close(); }); })
+            .then(next);
+        }
+        return next().then(function () { markSaved(t, "Saved " + n + " photo" + (n === 1 ? "" : "s") + " to “" + dir.name + " / " + sub.name + "”"); });
+      });
+    }).catch(function (err) {
+      if (err && err.name === "AbortError") return;       // user cancelled the folder dialog
+      if (err && err.name === "SecurityError") { downloadPhotos(t); return; }
+      toast("Couldn't save (" + (err && err.name ? err.name : "error") + ").", true);
+    });
+  }
+  function downloadPhotos(t) {
+    t.photos.forEach(function (p, i) {
+      setTimeout(function () {
+        var a = document.createElement("a"); a.href = p.url; a.download = photoFile(t, i);
+        document.body.appendChild(a); a.click(); a.remove();
+      }, i * 400);
+    });
+    markSaved(t, "Downloading " + t.photos.length + " photo(s). If the browser asks, allow multiple downloads.");
+  }
+  // The photo folder you pick is remembered (in IndexedDB) so you only choose it once.
+  function handleStore(op, val) {
+    return new Promise(function (res, rej) {
+      var rq = indexedDB.open("vrl-handles", 1);
+      rq.onupgradeneeded = function () { rq.result.createObjectStore("h"); };
+      rq.onerror = function () { rej(rq.error); };
+      rq.onsuccess = function () {
+        var db = rq.result, tx = db.transaction("h", "readwrite"), st = tx.objectStore("h");
+        var r = op === "get" ? st.get("photoDir") : st.put(val, "photoDir");
+        r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); };
+        tx.oncomplete = function () { db.close(); };
+      };
+    });
+  }
+  function photoFolder(forcePick) {
+    function pick() {
+      return window.showDirectoryPicker({ mode: "readwrite", startIn: "pictures" }).then(function (d) {
+        photoDir = d; updatePhotoDirUI(); handleStore("put", d).catch(function () {}); return d;
+      });
+    }
+    if (forcePick || !photoDir) return pick();
+    return photoDir.queryPermission({ mode: "readwrite" }).then(function (p) {
+      if (p === "granted") return photoDir;
+      return photoDir.requestPermission({ mode: "readwrite" }).then(function (q) { return q === "granted" ? photoDir : pick(); });
+    }).catch(pick);
+  }
+  function restorePhotoDir() {
+    if (!window.showDirectoryPicker || !window.indexedDB) return;
+    handleStore("get").then(function (d) { if (d) { photoDir = d; updatePhotoDirUI(); } }).catch(function () {});
+  }
+  function updatePhotoDirUI() { $("photoDirName").textContent = photoDir ? photoDir.name : "ask when saving"; }
 
   // ---------------------------------------------------------------------------
   // Transport UI
   // ---------------------------------------------------------------------------
   function updateTransport() {
-    var t = selected(), busy = recording || !!countdownTimer;
-    var reviewing = stage.classList.contains("reviewing");
+    var t = selected(), busy = recording || !!countdownTimer, photo = S.mode === "photo";
+    var reviewing = stage.classList.contains("reviewing"), isPhoto = !!(t && t.kind === "photo");
 
     var rb = $("recBtn");
-    rb.innerHTML = iconLabel(recording ? I.stop : I.rec, recording ? "Stop" : countdownTimer ? "Cancel" : "Record");
+    if (photo) rb.innerHTML = iconLabel(countdownTimer ? I.stop : I.snap, countdownTimer ? "Cancel" : "Snap");
+    else rb.innerHTML = iconLabel(recording ? I.stop : I.rec, recording ? "Stop" : countdownTimer ? "Cancel" : "Record");
     rb.classList.toggle("active", recording);
+    rb.classList.toggle("photo", photo);
+    rb.title = photo ? "Take a photo (Space)" : "Start / stop recording";
+    $("newTakeBtn").style.display = photo ? "" : "none";
+    $("newTakeBtn").disabled = !photoTake || busy;
     $("recDot").className = "dot" + (recording ? " live" : "");
     $("recBadge").classList.toggle("on", recording);
     $("projectName").disabled = recording;
     $("effects").classList.toggle("locked", recording);
     $("modeTabs").classList.toggle("locked", recording);
-    $("fxNote").textContent = recording ? "Effects are locked while recording." : "Backgrounds and filters are recorded into your takes.";
+    $("fxNote").textContent = recording ? "Effects are locked while recording." : "Backgrounds, filters, touch up and makeup are recorded into your takes and photos.";
 
     var playing = reviewing && !playback.paused && !playback.ended;
-    $("playBtn").innerHTML = iconLabel(playing ? I.pause : I.play, playing ? "Pause" : "Play");
+    if (isPhoto) $("playBtn").innerHTML = iconLabel(I.grid, stage.classList.contains("photoview") ? "Live" : "View");
+    else $("playBtn").innerHTML = iconLabel(playing ? I.pause : I.play, playing ? "Pause" : "Play");
     $("playBtn").disabled = !t || busy;
     $("saveBtn").innerHTML = iconLabel(I.save, t && t.saved ? "Save again" : "Save");
     $("saveBtn").disabled = !t || busy;
@@ -1332,6 +1910,12 @@
       $("takeName").textContent = pendingName.project + " - Take " + pendingName.num;
       $("takeSub").textContent = "Recording…";
       $("seekRow").hidden = true;
+    } else if (isPhoto) {
+      var n = t.photos.length, bytes = t.photos.reduce(function (a, p) { return a + p.blob.size; }, 0);
+      $("takeName").textContent = t.name;
+      $("takeSub").textContent = n + " photo" + (n === 1 ? "" : "s") + " · " + (bytes / 1048576).toFixed(1) + " MB · JPG · " + (t.saved ? "saved ✓" : "not saved")
+        + (photoTake === t && photo ? " · next snap adds to this take" : "");
+      $("seekRow").hidden = true;
     } else if (t) {
       $("takeName").textContent = t.name;
       $("takeSub").textContent = fmtTime(t.duration) + " · " + (t.blob.size / 1048576).toFixed(1) + " MB · " + t.ext.toUpperCase() + " · " + (t.saved ? "saved ✓" : "not saved");
@@ -1339,7 +1923,7 @@
       updateSeek();
     } else {
       $("takeName").textContent = projectName() + " - Take " + peekTakeNum(projectName());
-      $("takeSub").textContent = "Next take · press Record";
+      $("takeSub").textContent = photo ? "Next take · press Snap" : "Next take · press Record";
       $("seekRow").hidden = true;
     }
   }
@@ -1432,6 +2016,16 @@
     $("tabRec").onclick = function () { setMode("rec"); };
     $("tabTele").onclick = function () { setMode("tele"); };
     $("tabSlides").onclick = function () { setMode("slides"); };
+    $("tabPhoto").onclick = function () { setMode("photo"); };
+
+    // photo mode
+    $("newTakeBtn").innerHTML = iconLabel(I.plus, "New take");
+    $("newTakeBtn").onclick = newPhotoTake;
+    seg("burstSeg", BURSTS, "burst", null, function () {});
+    if (window.showDirectoryPicker) {
+      $("photoDirBtn").onclick = function () { photoFolder(true).catch(function () {}); };
+      updatePhotoDirUI(); restorePhotoDir();
+    } else { $("photoDirCtrl").remove(); }
 
     // slides
     var pickSlides = function () { $("slidesFile").click(); };
@@ -1467,9 +2061,14 @@
     fb.oninput = function () { S.brightness = +fb.value; $("fxBrightV").textContent = S.brightness + "%"; save(); };
     restoreCustomImage(); buildBgChips(); buildFilterChips();
     if (S.bg !== "none") loadSegmenter().catch(function () {});
+    var sm = $("fxSmooth"), mk = $("fxMakeup");
+    sm.oninput = function () { S.touchUp = +sm.value; save(); buildFaceUI(); updateTransport(); if (S.touchUp) loadFace().catch(function () {}); };
+    mk.oninput = function () { S.makeup = +mk.value; save(); buildFaceUI(); };
+    buildFaceUI();
+    if (faceNeeded()) loadFace().catch(function () {});
 
     // transport
-    $("recBtn").onclick = requestRecord;
+    $("recBtn").onclick = function () { if (S.mode === "photo") requestSnap(); else requestRecord(); };
     $("playBtn").onclick = togglePlayback;
     $("saveBtn").onclick = saveTake;
     $("delBtn").onclick = deleteTake;
@@ -1494,10 +2093,19 @@
 
     // script editor
     var ed = $("editor"), input = $("scriptInput");
-    $("editBtn").onclick = function () { input.value = S.text; ed.classList.add("open"); input.focus(); };
+    $("editBtn").onclick = $("notesEditBtn").onclick = function () { input.value = S.text; ed.classList.add("open"); input.focus(); };
     $("doneBtn").onclick = function () { S.text = input.value; applyText(); ed.classList.remove("open"); tpReset(); save(); };
     $("clearBtn").onclick = function () { input.value = ""; input.focus(); };
     input.oninput = function () { S.text = input.value; applyText(); save(); };
+    $("pptxBtn").onclick = function () { $("pptxFile").click(); };
+    $("pptxFile").onchange = function () { importPptx(this.files[0]); this.value = ""; };
+
+    // mouse wheel scrolls the teleprompter / notes whenever they're on screen
+    stage.addEventListener("wheel", function (e) {
+      if (!promptOn() || stage.classList.contains("reviewing") || ed.classList.contains("open")) return;
+      e.preventDefault();
+      nudge(e.deltaY * (e.deltaMode === 1 ? 20 : e.deltaMode === 2 ? stage.clientHeight : 1));
+    }, { passive: false });
 
     // keyboard
     window.addEventListener("keydown", function (e) {
@@ -1506,11 +2114,29 @@
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       var k = e.key.toLowerCase();
       var tele = S.mode === "tele";
+      var manual = S.scrollMode === "manual", line = S.fontSize * S.lineHeight * 1.5;
       if (S.mode === "slides" && !stage.classList.contains("reviewing")) {
+        // with notes over the slides, ↑↓ scroll the notes; everything else a clicker sends moves the slides
+        if (S.notesMode === "overlay" && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+          e.preventDefault();
+          var dn = e.key === "ArrowDown";
+          if (manual) nudge(dn ? line : -line); else setSpeed(S.speed + (dn ? -5 : 5));
+          return;
+        }
         // arrow keys, Page Up/Down and Space — what presentation clickers send
-        if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === "PageDown" || e.code === "Space") { e.preventDefault(); goSlide(slides.index + 1); return; }
-        if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); goSlide(slides.index - 1); return; }
+        if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === "PageDown" || e.code === "Space") { e.preventDefault(); stepNotes(1); return; }
+        if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); stepNotes(-1); return; }
         if (k === "c") { toggleSlideCam(); return; }
+      }
+      if (tele && !stage.classList.contains("reviewing")) {
+        if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); jumpToSection(sectionAt(pos) + (e.key === "ArrowRight" ? 1 : -1)); return; }
+        if (manual && (e.key === "ArrowUp" || e.key === "ArrowDown")) { e.preventDefault(); nudge(e.key === "ArrowDown" ? line : -line); return; }
+        if (manual && e.code === "Space") { e.preventDefault(); nudge(stage.clientHeight * 0.5); return; }
+      }
+      if (S.mode === "photo") {
+        if (stage.classList.contains("photoview") && e.key === "ArrowRight") { e.preventDefault(); stepPhoto(1); return; }
+        if (stage.classList.contains("photoview") && e.key === "ArrowLeft") { e.preventDefault(); stepPhoto(-1); return; }
+        if (e.code === "Space") { e.preventDefault(); requestSnap(); return; }
       }
       if (e.code === "Space") {
         e.preventDefault();
@@ -1531,7 +2157,7 @@
       if (recording || takes.some(function (t) { return !t.saved; })) { e.preventDefault(); e.returnValue = ""; }
     });
 
-    setMode(S.mode === "tele" || S.mode === "slides" ? S.mode : "rec");
+    setMode(S.mode === "tele" || S.mode === "slides" || S.mode === "photo" ? S.mode : "rec");
     startRender();
     renderTakes(); updateTransport();
     if (!S.project) pn.focus();

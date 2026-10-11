@@ -10,12 +10,19 @@ A simple camera recorder with numbered takes and a built-in teleprompter. It run
 - **Save**: opens a "Save as" dialog so you choose the folder. The file name is filled in for you, for example `Spring Promo - Take 3.mp4`. Saved takes show a ✓.
 - **Delete**: removes the selected take. It asks you first, and warns you if the take hasn't been saved.
 - **Teleprompter** tab: your script scrolls over the live camera. With "Scroll starts with record" on (in Settings), pressing Record starts both the recording and the scroll. Speed, size, mirror, color and font controls all carry over from the original teleprompter.
+  - **Auto / Manual** scroll: Auto scrolls at the speed you set. Manual scrolls with the mouse wheel, ↑ / ↓, or Space (half a screen). The wheel works in Auto too, to nudge.
+  - A line with just `---` splits the script into sections (one per slide). ← / → jump between sections.
+- **Photo** tab: **Snap** takes a still of exactly what's on screen, effects included (Space also snaps; the 3·2·1 countdown works as a self-timer). Every snap goes into the same take until you press **New take**. **View** opens the take: click a photo to see it big, ✕ removes one. **Save** writes the take as a folder, `<Project> - Take 3/<Project> - Take 3 - 01.jpg`, `- 02.jpg`, … inside a photo folder you pick once (change it in Settings). "Shots per snap" in Settings fires a burst of 1, 3 or 5.
 
 - **Backgrounds & filters** (the wand button ✨): blur your background, swap it for a built-in backdrop or your own image, and add a filter (Warm, Cool, Vivid, Soft, Vintage, B&W, Noir) or adjust brightness. Whatever you see is what gets recorded. The background feature uses a small AI model that runs on your computer, so no video is uploaded. It downloads once the first time you use it.
+- **Touch up & makeup** (same drawer): **Touch up** softens skin while eyes, brows and lips stay sharp, like Zoom's "touch up my appearance". **Lips**, **Blush**, **Eyes** (shadow) and **Brows** add colour where it belongs on your face, with one **Intensity** slider for all of them. These use a second on-device face model (downloaded once, nothing uploaded) and are recorded into takes and photos.
 - **Slides** tab: your slides fill the frame, with your camera in a round bubble.
   - **Load PDF (recommended):** in Google Slides, choose **File → Download → PDF Document**, then click **Load PDF**. Move through the slides with → / ← / Space or a presentation clicker.
   - **Share tab:** shares your Google Slides tab live, which keeps animations and embedded videos and records their sound. Start the slideshow in that tab, then come back to the app to stop recording.
   - **Camera on/off** at any time, even mid-take: **Slides + camera**, **Slides only**, or **Camera only**, or press **C**. Pick the bubble's corner and size (S / M / L).
+  - **Presenter notes** (never recorded): choose **Notes over** to scroll them over the slides like the teleprompter, or **Notes beside** for a pane next to the slides with this slide's notes, the next slide and its notes. Notes follow the slide you're on: the key or clicker press that changes the slide jumps the notes too. Write them with the **Notes** button (a `---` line starts the next slide's notes), or **Import .pptx notes**: in Google Slides choose **File → Download → Microsoft PowerPoint (.pptx)** and pick that file; the speaker notes come in, one section per slide. (A Google Slides link can't be read directly, because speaker notes aren't available without signing in to Google.)
+  - With notes over the slides, ↑ / ↓ scroll the notes (Manual) or change the speed (Auto); → ← Page Down/Up and Space still move the slides.
+  - With a shared tab, the app can't see which slide you're on, so press → / ← here to move the notes along.
 
 Takes live in memory until you save them. If you try to close the app with unsaved takes, it warns you first.
 

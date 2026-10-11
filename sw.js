@@ -1,6 +1,6 @@
 // Offline support so the installed desktop app opens without an internet connection.
 // Bump VERSION whenever index.html changes so installed copies pick up the update.
-var VERSION = "vrl-v3";
+var VERSION = "vrl-v4";
 var SHELL = ["./", "./index.html", "./manifest.webmanifest",
   "./icons/icon-32.png", "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png"];
 
